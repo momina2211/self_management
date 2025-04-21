@@ -2,3 +2,4 @@ __pycache/
 .python
 env/
 templates
+.idea
