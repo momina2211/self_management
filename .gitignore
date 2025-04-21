@@ -1,0 +1,4 @@
+__pycache/
+.python
+env/
+templates
