@@ -3,3 +3,4 @@ __pycache/
 env/
 templates
 .idea
+db.sqlite3
