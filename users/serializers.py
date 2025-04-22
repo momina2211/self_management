@@ -7,10 +7,12 @@ class UserSignupSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
     class Meta:
         model = User
-        fields = ['email', 'password']
+        fields = ['id','email', 'password']
 
     def create(self, validated_data):
-        user = User( email=validated_data['email'], )
+        email = validated_data['email']
+        username = email.split('@')[0]
+        user = User(email=email, username=username)
         user.set_password(validated_data['password'])
         user.save()
         UserProfile.objects.create(user=user)
