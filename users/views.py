@@ -1,4 +1,3 @@
-from django.conf import Settings
 from django.contrib.auth.tokens import default_token_generator
 from django.core.mail import send_mail
 from django.utils.encoding import force_bytes
@@ -16,6 +15,7 @@ User = get_user_model()
 
 
 class SignUpView(generics.ListCreateAPIView):
+    queryset = User.objects.all()
     serializer_class = UserSignupSerializer
 
     def create(self, request, *args, **kwargs):
@@ -29,14 +29,7 @@ class SignUpView(generics.ListCreateAPIView):
         }
         return Response(response_data, status=status.HTTP_201_CREATED)
 
-    def list(self, request, *args, **kwargs):
-        users = User.objects.all()
-        serializer = UserSignupSerializer(users, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-
 class LoginView(generics.GenericAPIView):
-
     def post(self, request, *args, **kwargs):
         email = request.data.get('email')
         password = request.data.get('password')
