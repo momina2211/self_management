@@ -41,7 +41,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 ]
 LOCAL_APPS = [
-    'users'
+    'users',
+    'fitness'
 ]
 Third_Party_APPS = [
     'rest_framework',

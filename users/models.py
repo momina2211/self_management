@@ -29,7 +29,7 @@ class UserProfile(UUIDMODEL):
     profile_pic=models.ImageField(upload_to='profile_pics',blank=True,null=True)
     date_of_birth = models.DateField(blank=True, null=True)
     cover_photo = models.ImageField(upload_to='cover_photos/', blank=True, null=True)
-    language=models.ManyToManyField(Language,blank=True,null=True)
+    language=models.ManyToManyField(Language,blank=True)
 
 
     def __str__(self):

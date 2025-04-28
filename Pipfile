@@ -8,6 +8,8 @@ psycopg2-binary = "*"
 python-decouple = "*"
 pillow = "*"
 djangorestframework = "*"
+openai = "*"
+requests = "*"
 
 [dev-packages]
 

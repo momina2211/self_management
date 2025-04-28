@@ -1,0 +1,97 @@
+from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
+
+from fitness.workout.models import Exercise, WorkoutPlan,ExerciseCategory
+
+
+class ExerciseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Exercise
+        fields = ['id', 'name', 'instructions', 'default_reps', 'default_sets', 'rest_time_seconds']
+
+class ExerciseCategorySerializer(serializers.ModelSerializer):
+    exercises =ExerciseSerializer (source='Exercises', many=True, read_only=True)
+    exercise_ids = serializers.PrimaryKeyRelatedField(
+        source='Exercises',
+        queryset=Exercise.objects.all(),
+        many=True,
+        write_only=True,
+        required=False
+    )
+
+    class Meta:
+        model = ExerciseCategory
+        fields = ['id', 'name', 'user', 'exercises', 'exercise_ids']
+        read_only_fields = ['user']
+
+    def create(self, validated_data):
+        user=self.context['request'].user
+        exercises = validated_data.pop('Exercises', [])
+        exercise_category = ExerciseCategory.objects.create(**validated_data)
+        exercise_category.Exercises.set(exercises)
+        return exercise_category
+
+    def update(self, instance, validated_data):
+        user = self.context['request'].user
+        if instance.user != user:
+            raise PermissionDenied("You are not authorized to update this category.")
+        exercises = validated_data.pop('Exercises', None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        if exercises is not None:
+            instance.Exercises.set(exercises)
+        return instance
+
+    def destroy(self, instance):
+        user = self.context['request'].user
+        if instance.user != user:
+            raise PermissionDenied("You are not authorized to delete this category.")
+        instance.delete()
+
+
+class WorkoutPlanSerializer(serializers.ModelSerializer):
+    exercises =serializers.PrimaryKeyRelatedField(
+        queryset=Exercise.objects.all(),
+        many=True,
+        required=False
+    )
+
+    class Meta:
+        model = WorkoutPlan
+        fields = ['id', 'name', 'level', 'user', 'visibility', 'exercises']
+        read_only_fields = ['user']
+
+    def create(self, validated_data):
+        exercises_data = validated_data.pop('exercises', [])
+        workout_plan = WorkoutPlan.objects.create(**validated_data)
+        workout_plan.exercise.set(exercises_data)
+        return workout_plan
+
+    def update(self, instance, validated_data):
+        user = self.context['request'].user
+        if instance.user != user:
+            raise PermissionDenied("You are not authorized to update this workout plan.")
+        exercises_data = validated_data.pop('exercises', None)
+
+        instance.name = validated_data.get('name', instance.name)
+        instance.level = validated_data.get('level', instance.level)
+        instance.visibility = validated_data.get('visibility', instance.visibility)
+        instance.save()
+
+        if exercises_data is not None:
+            instance.exercise.set(exercises_data)
+
+        return instance
+
+    def destroy(self, instance):
+        user = self.context['request'].user
+        if instance.user != user:
+            raise PermissionDenied("You are not authorized to delete this workout plan.")
+        instance.delete()
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        exercises = instance.exercise.all()
+        representation['exercises'] = ExerciseSerializer(exercises, many=True).data
+        return representation
