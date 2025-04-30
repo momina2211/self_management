@@ -3,6 +3,7 @@ import uuid
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from djstripe.models  import Customer,Account
 
 from users.utils.models import UUIDMODEL
 
@@ -12,6 +13,10 @@ from users.utils.models import UUIDMODEL
 class User(AbstractUser):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     email = models.EmailField(_("Email of User"), unique=True)
+    stripe_customer = models.ForeignKey(Customer, null=True, blank=True, on_delete=models.SET_NULL,
+                                        help_text="The user's Stripe Customer Object object, if it exists")
+    stripe_account = models.ForeignKey(Account, null=True, blank=True, on_delete=models.SET_NULL,
+                                       help_text="The user's Stripe Account Object object, if it exists")
 
     def __str__(self):
         return self.email

@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 
@@ -51,19 +53,19 @@ class ExerciseCategorySerializer(serializers.ModelSerializer):
 
 
 class WorkoutPlanSerializer(serializers.ModelSerializer):
-    exercises =serializers.PrimaryKeyRelatedField(
-        queryset=Exercise.objects.all(),
-        many=True,
-        required=False
-    )
+    exercises =serializers.PrimaryKeyRelatedField( queryset=Exercise.objects.all(),source='exercise',many=True,required=False)
+    price = serializers.DecimalField( max_digits=10,decimal_places=2, min_value=Decimal('0.50'),required=False  )
 
     class Meta:
         model = WorkoutPlan
-        fields = ['id', 'name', 'level', 'user', 'visibility', 'exercises']
+        fields = ['id', 'name', 'level', 'user','price','visibility', 'exercises']
         read_only_fields = ['user']
 
     def create(self, validated_data):
         exercises_data = validated_data.pop('exercises', [])
+        price = validated_data.get('price', None)
+        if price is not None:
+            validated_data['price'] = Decimal(str(price))
         workout_plan = WorkoutPlan.objects.create(**validated_data)
         workout_plan.exercise.set(exercises_data)
         return workout_plan
@@ -72,16 +74,12 @@ class WorkoutPlanSerializer(serializers.ModelSerializer):
         user = self.context['request'].user
         if instance.user != user:
             raise PermissionDenied("You are not authorized to update this workout plan.")
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
         exercises_data = validated_data.pop('exercises', None)
-
-        instance.name = validated_data.get('name', instance.name)
-        instance.level = validated_data.get('level', instance.level)
-        instance.visibility = validated_data.get('visibility', instance.visibility)
         instance.save()
-
         if exercises_data is not None:
             instance.exercise.set(exercises_data)
-
         return instance
 
     def destroy(self, instance):
@@ -95,3 +93,20 @@ class WorkoutPlanSerializer(serializers.ModelSerializer):
         exercises = instance.exercise.all()
         representation['exercises'] = ExerciseSerializer(exercises, many=True).data
         return representation
+
+
+class PurchaseWorkoutPlanSerializer(serializers.Serializer):
+    workout_plan_id = serializers.UUIDField()
+    payment_method_id = serializers.CharField()
+
+    def validate_workout_plan_id(self, value):
+        try:
+            plan = WorkoutPlan.objects.get(
+                id=value,
+                visibility=WorkoutPlan.VisibilityChoices.PRIVATE,
+            )
+            if plan.user == self.context['request'].user:
+                raise serializers.ValidationError("You cannot purchase your own plan")
+            return plan
+        except WorkoutPlan.DoesNotExist:
+            raise serializers.ValidationError("Invalid or non-purchasable workout plan")

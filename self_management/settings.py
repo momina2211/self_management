@@ -42,11 +42,14 @@ INSTALLED_APPS = [
 ]
 LOCAL_APPS = [
     'users',
-    'fitness'
+    'fitness',
+    'payments',
+    'purchase',
 ]
 Third_Party_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
+    'djstripe'
 ]
 
 INSTALLED_APPS += LOCAL_APPS + Third_Party_APPS
@@ -157,3 +160,13 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = config('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
+
+#STRIPE CONFIGURATIONS
+PUBLISHABLE_KEY = config('STRIPE_TEST_PUBLIC_KEY')
+STRIPE_TEST_SECRET_KEY = config('STRIPE_TEST_SECRET_KEY')
+DJSTRIPE_USE_NATIVE_JSONFIELD = True
+DJSTRIPE_FOREIGN_KEY_TO_FIELD = "id"
+DJSTRIPE_WEBHOOK_VALIDATION = 'retrieve_event'
+STRIPE_LIVE_MODE = False
+
+
