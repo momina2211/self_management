@@ -12,4 +12,4 @@ class PurchaseViewSet(viewsets.ReadOnlyModelViewSet):
     pagination_class = CustomPageSizePagination
 
     def get_queryset(self):
-        return Purchase.objects.filter(buyer=self.request.user)
+        return Purchase.objects.filter(buyer=self.request.user).order_by('-purchased_at')
