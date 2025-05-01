@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from django.db.models import Q
 from djstripe.models import Customer
 from djstripe.models import PaymentIntent
-
+from fitness.workout.utils import create_stripe_products, update_stripe_products
 from fitness.workout.models import Exercise, WorkoutPlan,ExerciseCategory
 from fitness.workout.serializers import ExerciseSerializer, WorkoutPlanSerializer,ExerciseCategorySerializer,PurchaseWorkoutPlanSerializer
 from purchase.models import Purchase
@@ -62,13 +62,11 @@ class WorkoutPlanViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         user = self.request.user
         with transaction.atomic():
-            # Save workout plan first
             workout_plan = serializer.save(user=user)
 
-            # Only proceed with Stripe if price meets minimum
             if workout_plan.price and workout_plan.price >= Decimal('0.50'):
                 try:
-                    self._create_stripe_products(workout_plan, user)
+                    create_stripe_products(workout_plan, user)
                 except stripe.error.StripeError as e:
                     logger.error(
                         f"Stripe Error for WorkoutPlan {workout_plan.id}: {str(e)}",
@@ -78,6 +76,7 @@ class WorkoutPlanViewSet(viewsets.ModelViewSet):
                             'price': float(workout_plan.price)
                         }
                     )
+
     def perform_update(self, serializer):
         instance = serializer.instance
         user = self.request.user
@@ -88,13 +87,12 @@ class WorkoutPlanViewSet(viewsets.ModelViewSet):
         with transaction.atomic():
             workout_plan = serializer.save()
 
-            # Handle Stripe updates if price exists and was changed
             if 'price' in serializer.validated_data:
                 try:
                     if workout_plan.stripe_product_id:
-                        self._update_stripe_products(workout_plan)
+                        update_stripe_products(workout_plan)
                     elif workout_plan.price and workout_plan.price >= Decimal('0.50'):
-                        self._create_stripe_products(workout_plan, user)
+                        create_stripe_products(workout_plan, user)
                 except stripe.error.StripeError as e:
                     logger.error(
                         f"Stripe Update Error for WorkoutPlan {workout_plan.id}: {str(e)}",
@@ -104,57 +102,6 @@ class WorkoutPlanViewSet(viewsets.ModelViewSet):
                             'action': 'update'
                         }
                     )
-
-    def _create_stripe_products(self, workout_plan, user):
-        """Helper method to create Stripe product and price"""
-        product = stripe.Product.create(
-            name=workout_plan.name,
-            description=f"Workout Plan: {workout_plan.name}",
-            metadata={
-                'workout_plan_id': str(workout_plan.id),
-                'user_id': str(user.id),
-                'system': 'FitnessApp'
-            }
-        )
-
-        price = stripe.Price.create(
-            product=product.id,
-            unit_amount=int(workout_plan.price * 100),  # Convert to cents
-            currency='usd',
-            metadata={
-                'workout_plan_id': str(workout_plan.id),
-                'user_id': str(user.id)
-            }
-        )
-
-        # Update our model with Stripe IDs
-        workout_plan.stripe_product_id = product.id
-        workout_plan.stripe_price_id = price.id
-        workout_plan.save(update_fields=['stripe_product_id', 'stripe_price_id'])
-
-    def _update_stripe_products(self, workout_plan):
-        """Helper method to update Stripe product and create new price"""
-        # Update product name/description if changed
-        stripe.Product.modify(
-            workout_plan.stripe_product_id,
-            name=workout_plan.name,
-            description=f"Workout Plan: {workout_plan.name}",
-        )
-
-        # Create new price (since prices are immutable)
-        new_price = stripe.Price.create(
-            product=workout_plan.stripe_product_id,
-            unit_amount=int(workout_plan.price * 100),
-            currency='usd',
-            metadata={
-                'workout_plan_id': str(workout_plan.id),
-                'user_id': str(workout_plan.user.id)
-            }
-        )
-
-        # Update our model with new price ID
-        workout_plan.stripe_price_id = new_price.id
-        workout_plan.save(update_fields=['stripe_price_id'])
 
     @action(detail=False, methods=['post'], permission_classes=[IsAuthenticated])
     def purchase(self, request):

@@ -14,13 +14,11 @@ def create_test_payment_method(request):
     Creates a test payment method using Stripe tokens
     """
     try:
-        # Get or create customer
         customer, created = Customer.get_or_create(subscriber=request.user)
         if created:
             request.user.stripe_customer = customer
             request.user.save()
 
-        # Create payment method using test token
         payment_method = stripe.PaymentMethod.create(
             type="card",
             card={"token": "tok_visa"},  # Using test token
