@@ -7,11 +7,12 @@ name = "pypi"
 psycopg2-binary = "*"
 python-decouple = "*"
 pillow = "*"
-djangorestframework = "*"
 openai = "*"
 requests = "*"
 dj-stripe = "==2.5.1"
 stripe = "==2.60.0"
+djangorestframework = "*"
+django-filter = "*"
 
 [dev-packages]
 

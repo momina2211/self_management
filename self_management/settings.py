@@ -45,11 +45,13 @@ LOCAL_APPS = [
     'fitness',
     'payments',
     'purchase',
+    'todo'
 ]
 Third_Party_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
-    'djstripe'
+    'djstripe',
+    'django_filters'
 ]
 
 INSTALLED_APPS += LOCAL_APPS + Third_Party_APPS

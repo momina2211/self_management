@@ -22,6 +22,9 @@ urlpatterns = [
     path('api/',include('users.urls')),
     path('api/',include('fitness.urls')),
     path('api/',include('payments.urls')),
-    path('api/',include('purchase.urls'))
+    path('api/',include('purchase.urls')),
+    path('api/',include('todo.urls')),
+    path('api-auth/', include('rest_framework.urls'))
+
 
 ]

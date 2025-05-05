@@ -6,6 +6,7 @@ from rest_framework import  generics
 from django.contrib.auth import get_user_model
 from rest_framework.views import APIView
 
+from users.pagination import CustomPageSizePagination
 from users.serializers import UserSignupSerializer
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
